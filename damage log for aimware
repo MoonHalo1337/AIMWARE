@@ -1,0 +1,139 @@
+client.Command('developer 1')
+client.Command('con_filter_text ""')
+client.Command('con_filter_enable 2')
+client.Command('con_filter_text_out "："')
+
+ffi.cdef [[
+    void* GetProcAddress(void* hModule, const char* lpProcName);
+    void* GetModuleHandleA(const char* lpModuleName);
+    
+    typedef struct {
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        uint8_t a;
+    } color_struct_t;
+
+    typedef void (*console_color_print)(const color_struct_t&, const char*, ...);
+
+    typedef void* (__thiscall* get_client_entity_t)(void*, int);
+]]
+
+local ffi_log = ffi.cast("console_color_print", ffi.C.GetProcAddress(ffi.C.GetModuleHandleA("tier0.dll"), "?ConColorMsg@@YAXABVColor@@PBDZZ"))
+
+function client.log(msg, ...)
+    for k, v in pairs({...}) do
+        msg = tostring(msg .. v)
+    end
+    ffi_log(ffi.new("color_struct_t"), msg .. "\n")
+end
+
+function client.color_log(r, g, b, msg, ...)
+    for k, v in pairs({...}) do
+        msg = tostring(msg .. v)
+    end
+    local clr = ffi.new("color_struct_t")
+    clr.r, clr.g, clr.b, clr.a = r, g, b, 255
+    ffi_log(clr, msg .. "\n")
+end
+
+local client_color_log = client.color_log
+local activeHitLogs = {};
+
+local function HitGroup(INT_HITGROUP)
+    if INT_HITGROUP == nil then
+        return;
+    elseif INT_HITGROUP == 0 then
+        return "body";
+    elseif INT_HITGROUP == 1 then
+        return "head";
+    elseif INT_HITGROUP == 2 then
+        return "chest";
+    elseif INT_HITGROUP == 3 then
+        return "stomach";
+    elseif INT_HITGROUP == 4 then
+        return "left arm";
+    elseif INT_HITGROUP == 5 then
+        return "right arm";
+    elseif INT_HITGROUP == 6 then
+        return "left leg";
+    elseif INT_HITGROUP == 7 then
+        return "right leg";
+    elseif INT_HITGROUP == 10 then
+        return "neck";
+    end
+end
+
+callbacks.Register('FireGameEvent', function(e)
+    local en = e:GetName();
+    local isHurt = en == 'player_hurt';
+    local weaponFired = en == 'weapon_fire';
+
+    if en == "weapon_fire"  then
+
+        if client.GetPlayerNameByUserID(e:GetInt("userid")) ~= entities.GetLocalPlayer():GetName() then 
+            return 
+        end 
+        
+        if entities.GetLocalPlayer():GetWeaponType() == 0 then 
+            return 
+        end
+
+        lastupdate = globals.FrameCount()         
+end
+
+    if isHurt == false and weaponFired == false then
+        return
+    end
+
+    local localPlayer = entities.GetLocalPlayer();
+    local user = entities.GetByUserID(e:GetInt('userid'));
+    if (localPlayer == nil or user == nil) then
+        return;
+    end
+    if isHurt then
+        local attacker = entities.GetByUserID(e:GetInt('attacker'));
+        local remainingHealth = e:GetInt('health');
+        local damageDone = e:GetInt('dmg_health');
+        if (attacker == nil) then
+            return;
+        end
+
+
+
+        if (localPlayer:GetIndex() == attacker:GetIndex()) then
+
+local log3 = attacker:GetName().. " did " .. damageDone .. " damage to " .. string.sub(user:GetName(), 0, 28) .. " " .. HitGroup(e:GetInt('hitgroup')) .. " (" .. remainingHealth .. " hp left)" .. ""
+
+client_color_log(31,201,44, log3)
+
+        end
+
+        if (localPlayer:GetIndex() ~= attacker:GetIndex() and string.sub(user:GetName(), 0, 28) ~= localPlayer:GetName()) then
+
+local log4 = attacker:GetName().. " did " .. damageDone .. " damage to " .. string.sub(user:GetName(), 0, 28) .. " " .. HitGroup(e:GetInt('hitgroup')) .. " (" .. remainingHealth .. " hp left)" .. ""
+
+client_color_log(234,90,7, log4)
+
+        end
+
+        if (localPlayer:GetIndex() ~= attacker:GetIndex() and string.sub(user:GetName(), 0, 28) == localPlayer:GetName()) then
+
+local log6 = attacker:GetName().. " did " .. damageDone .. " damage to " .. string.sub(user:GetName(), 0, 28) .. " " .. HitGroup(e:GetInt('hitgroup')) .. " (" .. remainingHealth .. " hp left)" .. ""
+
+client_color_log(255,0,0, log6)
+
+        end
+
+        end
+end);
+
+
+callbacks.Register('Draw', function()
+    for index, hitlog in pairs(activeHitLogs) do
+        showLog(index, hitlog.color, hitlog.text, hitlog)
+    end
+end);
+
+
+

@@ -1,8 +1,18 @@
+---@允许服务器设置dev_print 1
+---@设置dev_print 1
+---@控制台输出限制 & 只输出包含特定字符的
+---@启用控制台输出限制 & "1" 为 使过滤日志变暗 "2" 为 完全过滤其它日志
+---@控制台输出限制 & 不输出包含特定字符的
+
+
 client.Command('sv_max_allowed_developer 1')
 client.Command('developer 1')
 client.Command('con_filter_text ""')
 client.Command('con_filter_enable 2')
 client.Command('con_filter_text_out "："')
+
+
+---@ffi_print_console
 
 ffi.cdef [[
     void* GetProcAddress(void* hModule, const char* lpProcName);
@@ -22,12 +32,16 @@ ffi.cdef [[
 
 local ffi_log = ffi.cast("console_color_print", ffi.C.GetProcAddress(ffi.C.GetModuleHandleA("tier0.dll"), "?ConColorMsg@@YAXABVColor@@PBDZZ"))
 
+---@client.log & default color print
+
 function client.log(msg, ...)
     for k, v in pairs({...}) do
         msg = tostring(msg .. v)
     end
     ffi_log(ffi.new("color_struct_t"), msg .. "\n")
 end
+
+---@client.color_log
 
 function client.color_log(r, g, b, msg, ...)
     for k, v in pairs({...}) do
@@ -101,6 +115,7 @@ end
         end
 
 
+---@ local player damage log
 
         if (localPlayer:GetIndex() == attacker:GetIndex()) then
 
@@ -109,6 +124,8 @@ local log3 = attacker:GetName().. " did " .. damageDone .. " damage to " .. stri
 client_color_log(31,201,44, log3)
 
         end
+        
+---@ else player damage log
 
         if (localPlayer:GetIndex() ~= attacker:GetIndex() and string.sub(user:GetName(), 0, 28) ~= localPlayer:GetName()) then
 
@@ -117,6 +134,8 @@ local log4 = attacker:GetName().. " did " .. damageDone .. " damage to " .. stri
 client_color_log(234,90,7, log4)
 
         end
+
+---@ hurt log
 
         if (localPlayer:GetIndex() ~= attacker:GetIndex() and string.sub(user:GetName(), 0, 28) == localPlayer:GetName()) then
 
@@ -131,10 +150,8 @@ end);
 
 
 callbacks.Register('Draw', function()
+---@i'm paster lol
     for index, hitlog in pairs(activeHitLogs) do
         showLog(index, hitlog.color, hitlog.text, hitlog)
     end
 end);
-
-
-

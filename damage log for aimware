@@ -1,3 +1,4 @@
+client.Command('sv_max_allowed_developer 1')
 client.Command('developer 1')
 client.Command('con_filter_text ""')
 client.Command('con_filter_enable 2')
